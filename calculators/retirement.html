@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Retirement Calculator - India</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        text-align: center;
+      }
+      .container {
+        max-width: 600px;
+        margin: auto;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .question {
+        margin: 20px 0;
+      }
+      button {
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      .result,
+      .details {
+        margin-top: 20px;
+        font-weight: bold;
+      }
+      table {
+        width: 100%;
+        margin-top: 20px;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+      }
+      th {
+        background-color: #007bff;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Retirement Calculator - India</h2>
+      <div id="question-container">
+        <div class="question">
+          <p>How much is your current monthly expense? (₹)</p>
+          <!-- Changed type to text -->
+          <input type="text" id="expense" required />
+        </div>
+        <div class="question">
+          <p>How many years to retirement?</p>
+          <input type="number" id="yearsToRetirement" required />
+        </div>
+        <div class="question">
+          <p>How many years of retired life?</p>
+          <input type="number" id="yearsRetired" value="30" required />
+        </div>
+        <div class="question">
+          <p>How much savings/investments do you have now? (₹)</p>
+          <!-- Changed type to text -->
+          <input type="text" id="currentSavings" required />
+        </div>
+        <div class="question">
+          <p>How much can you save every month from now? (₹)</p>
+          <!-- Changed type to text -->
+          <input type="text" id="monthlySavings" required />
+        </div>
+        <div class="question">
+          <p>Do you have any big ticket expenses? If yes, how much? (₹)</p>
+          <!-- Changed type to text -->
+          <input type="text" id="bigExpense" value="0" required />
+          <p>In how many years will this expense occur?</p>
+          <input type="number" id="bigExpenseYears" required />
+        </div>
+        <div class="question">
+          <p>What is the expected return on investments? (Default: 8%)</p>
+          <input type="number" id="returnRate" value="8" required />
+        </div>
+        <div class="question">
+          <p>What is the expected inflation rate? (Default: 6%)</p>
+          <input type="number" id="inflationRate" value="6" required />
+        </div>
+        <button onclick="calculateRetirementPlan()">Calculate</button>
+      </div>
+      <div class="result" id="result"></div>
+      <div class="details" id="details"></div>
+      <div id="table-container"></div>
+      <div id="withdrawal-table-container"></div>
+    </div>
+
+    <script>
+      // Function to format a number string using the Indian numbering system
+      function formatNumberIndian(value) {
+        // Remove existing commas
+        value = value.replace(/,/g, '');
+        if (value === '' || isNaN(value)) return value;
+        // Split integer and decimal parts
+        let parts = value.split('.');
+        let integerPart = parts[0];
+        let decimalPart = parts.length > 1 ? '.' + parts[1] : '';
+        // Format integer part with Indian locale formatting
+        return Number(integerPart).toLocaleString('en-IN') + decimalPart;
+      }
+
+      // Event listener function to format input as user types
+      function formatCurrencyInput(e) {
+        let cursorPos = e.target.selectionStart;
+        let originalLength = e.target.value.length;
+        e.target.value = formatNumberIndian(e.target.value);
+        // Adjust cursor position (this is a basic adjustment and may not be perfect)
+        let newLength = e.target.value.length;
+        e.target.selectionStart = e.target.selectionEnd = cursorPos + (newLength - originalLength);
+      }
+
+      // Add the input event listeners to the currency fields
+      document.addEventListener('DOMContentLoaded', function() {
+        const currencyFields = ['expense', 'currentSavings', 'monthlySavings', 'bigExpense'];
+        currencyFields.forEach(function(id) {
+          const field = document.getElementById(id);
+          field.addEventListener('input', formatCurrencyInput);
+        });
+      });
+
+      function calculateRetirementPlan() {
+        // Remove commas before parsing
+        let userData = {
+          expense: parseFloat(document.getElementById("expense").value.replace(/,/g, '')) || 0,
+          yearsToRetirement: parseInt(document.getElementById("yearsToRetirement").value) || 0,
+          yearsRetired: parseInt(document.getElementById("yearsRetired").value) || 0,
+          currentSavings: parseFloat(document.getElementById("currentSavings").value.replace(/,/g, '')) || 0,
+          monthlySavings: parseFloat(document.getElementById("monthlySavings").value.replace(/,/g, '')) || 0,
+          bigExpense: parseFloat(document.getElementById("bigExpense").value.replace(/,/g, '')) || 0,
+          bigExpenseYears: parseInt(document.getElementById("bigExpenseYears").value) || 0,
+          returnRate: parseFloat(document.getElementById("returnRate").value) || 8,
+          inflationRate: parseFloat(document.getElementById("inflationRate").value) || 6,
+        };
+        let corpus = userData.currentSavings;
+        let corpusAtStartOfWithdrawals;
+        let tableContent = `<h3>Corpus Growth Before Retirement</h3><table><tr><th>Year</th><th>Corpus at Start (₹)</th><th>Annual Savings (₹)</th><th>Growth (₹)</th><th>Corpus at End (₹)</th></tr>`;
+
+        for (let i = 0; i < userData.yearsToRetirement; i++) {
+          let growth = corpus * (userData.returnRate / 100);
+          corpus += userData.monthlySavings * 12 + growth;
+          if (i + 1 === userData.bigExpenseYears) {
+            corpus -= userData.bigExpense;
+            tableContent += `<tr><td colspan="5">Big Ticket Expense Deducted: ₹${userData.bigExpense.toFixed(2)}</td></tr>`;
+          }
+          if (corpus < 0) {
+            tableContent += `<tr><td colspan="5">Your corpus becomes 0 at this point</td></tr>`;
+          }
+          tableContent += `<tr><td>${i + 1}</td><td>${(corpus - growth - userData.monthlySavings * 12).toFixed(2)}</td><td>${(userData.monthlySavings * 12).toFixed(2)}</td><td>${growth.toFixed(2)}</td><td>${corpus.toFixed(2)}</td></tr>`;
+        }
+        corpusAtStartOfWithdrawals = corpus;
+        tableContent += `</table>`;
+        document.getElementById("table-container").innerHTML = tableContent;
+
+        let withdrawalTable = `<h3>Withdrawals After Retirement</h3><table><tr><th>Year</th><th>Corpus at Start (₹)</th><th>Annual Expense (₹)</th><th>Growth (₹)</th><th>Corpus at End (₹)</th></tr>`;
+        let annualExpense = userData.expense * 12 * Math.pow(1 + userData.inflationRate / 100, userData.yearsToRetirement);
+
+        for (let i = 0; i < userData.yearsRetired; i++) {
+          let corpusStart = corpus;
+          corpus -= annualExpense;
+          let growth = corpus > 0 ? corpus * (userData.returnRate / 100) : 0;
+          corpus += growth;
+          if (i + 1 === userData.bigExpenseYears - userData.yearsToRetirement) {
+            corpusStart -= userData.bigExpense;
+            withdrawalTable += `<tr><td colspan="5">Big Ticket Expense Deducted: ₹${userData.bigExpense.toFixed(2)}</td></tr>`;
+          }
+          if (corpusStart <= 0) {
+            withdrawalTable += `<tr><td colspan="5">Your corpus becomes 0 at this point</td></tr>`;
+          }
+          withdrawalTable += `<tr><td>${i + 1}</td><td>${corpusStart.toFixed(2)}</td><td>${annualExpense.toFixed(2)}</td><td>${growth.toFixed(2)}</td><td>${corpus.toFixed(2)}</td></tr>`;
+          annualExpense *= 1 + userData.inflationRate / 100;
+        }
+        withdrawalTable += `</table>`;
+        document.getElementById("withdrawal-table-container").innerHTML = withdrawalTable;
+        document.getElementById("result").innerHTML = `<h3>Final Retirement Corpus</h3>Your estimated retirement corpus will be ₹${corpusAtStartOfWithdrawals.toFixed(2)}.`;
+      }
+    </script>
+  </body>
+</html>

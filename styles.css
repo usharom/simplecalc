@@ -1,0 +1,18 @@
+h1 {
+  text-decoration: underline;
+}
+.calculator-list {
+  list-style: none;
+  padding: 0;
+}
+.calculator-list li {
+  margin: 10px 0;
+}
+.calculator-list a {
+  text-decoration: none;
+  color: #007bff;
+  font-size: 18px;
+}
+.calculator-list a:hover {
+  text-decoration: underline;
+}
